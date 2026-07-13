@@ -73,45 +73,56 @@ The platform is composed of three fully independent microservices housed in a si
 <br />
 
 ```mermaid
-graph LR
+%%{init: {'theme': 'default', 'themeVariables': { 'fontSize': '16px', 'fontFamily': 'Inter, sans-serif' }}}%%
+graph TD
     User(["👤 User"])
 
-    subgraph FE ["⚛️ Frontend — Vite"]
-        UI["React SPA<br>GSAP + Leaflet"]
+    subgraph FE ["⚛️ Frontend — Vite React SPA"]
+        direction TB
+        UI["Interactive UI<br>(GSAP + Leaflet Maps)"]
     end
 
-    subgraph BE ["🟢 Backend — Express"]
-        API["REST API<br>Node.js"]
-        GEO["Nominatim<br>Geocoder"]
-        MULT["Vehicle<br>Multipliers"]
-        DB[("MongoDB<br>Atlas")]
+    subgraph BE ["🟢 Backend — Node.js & Express"]
+        direction TB
+        API["REST API Controller"]
+        GEO["Nominatim Geocoder"]
+        MULT["Vehicle Multipliers"]
+        DB[("MongoDB Atlas<br>(Ride Persistence)")]
     end
 
-    subgraph AI ["🐍 AI Engine — FastAPI"]
-        FN["Serverless<br>Function"]
-        ENG["Feature<br>Engineering"]
-        OOD{"OOD<br>Guardrail"}
-        MODEL["Pure Python<br>Predictor (JSON)"]
-        LINEAR["Linear<br>Fallback"]
+    subgraph AI ["🐍 AI Engine — Python FastAPI"]
+        direction TB
+        FN["Serverless Endpoint<br>(/api/predict)"]
+        ENG["Feature Engineering<br>(Haversine Distance)"]
+        OOD{"OOD Guardrail<br>(Distance > 35km?)"}
+        MODEL["Pure Python Predictor<br>(Gradient Boosting)"]
+        LINEAR["Linear Fallback<br>(Formula Pricing)"]
     end
 
-    User -->|"Enter locations"| UI
-    UI -->|"GET /rides/get-fare"| API
-    API -->|"Geocode addresses"| GEO
-    GEO -->|"lat, lng"| API
-    API -->|"POST /api/predict"| FN
-    FN --> ENG
-    ENG --> OOD
-    OOD -->|"In-distribution"| MODEL
-    OOD -->|"OOD trip"| LINEAR
-    MODEL -->|"Predicted fare"| FN
-    LINEAR -->|"Formula fare"| FN
-    FN -->|"estimated_fare_usd"| API
-    API --> MULT
-    MULT -->|"car / auto / moto prices"| UI
-    UI -->|"User confirms vehicle"| UI
-    UI -->|"POST /rides/create"| API
-    API -->|"Persist ride record"| DB
+    User -->|"1. Enters Pickup & Dropoff"| UI
+    UI -->|"2. GET /rides/get-fare"| API
+    
+    API -->|"3. Resolve Addresses"| GEO
+    GEO -.->|"Coordinates (lat, lng)"| API
+    
+    API -->|"4. POST /api/predict"| FN
+    
+    FN -->|"5. Extract Features"| ENG
+    ENG -->|"6. Check Bounds"| OOD
+    
+    OOD -->|"In-Distribution"| MODEL
+    OOD -->|"Out-of-Distribution"| LINEAR
+    
+    MODEL -.->|"Predicted Fare USD"| FN
+    LINEAR -.->|"Fallback Fare USD"| FN
+    
+    FN -.->|"7. Return Base Fare"| API
+    
+    API -->|"8. Apply Surge/Type"| MULT
+    MULT -.->|"Prices: Car/Auto/Moto"| UI
+    
+    UI -->|"9. User Confirms Ride"| API
+    API -->|"10. POST /rides/create"| DB
 ```
 
 <br />
