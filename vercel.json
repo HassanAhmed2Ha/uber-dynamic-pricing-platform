@@ -15,7 +15,7 @@
       "src": "api/predict/index.py",
       "use": "@vercel/python",
       "config": {
-        "includeFiles": "api/predict/*.pkl, api/predict/*.json, api/predict/predictor.py"
+        "includeFiles": ["api/predict/*.pkl", "api/predict/*.json", "api/predict/predictor.py"]
       }
     }
   ],
