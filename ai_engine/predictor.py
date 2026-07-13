@@ -11,10 +11,6 @@ import math
 from datetime import datetime
 import numpy as np
 import joblib
-import gradio as gr
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-import uvicorn
 
 
 # ---------------------------------------------------------------------------
@@ -175,81 +171,4 @@ class FarePredictor:
         }
 
 
-# ---------------------------------------------------------------------------
-# Gradio Interface API
-# ---------------------------------------------------------------------------
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-predictor = FarePredictor(
-    model_path=os.path.join(BASE_DIR, "best_model.pkl"),
-    scaler_path=os.path.join(BASE_DIR, "scaler.pkl"),
-    features_path=os.path.join(BASE_DIR, "model_features.json"),
-)
-
-def gradio_predict(
-    pickup_lat: float, 
-    pickup_lon: float, 
-    dropoff_lat: float, 
-    dropoff_lon: float, 
-    passenger_count: float, 
-    trip_datetime_str: str
-):
-    try:
-        # Parse ISO datetime
-        dt_str = str(trip_datetime_str).replace("Z", "+00:00")
-        trip_dt = datetime.fromisoformat(dt_str)
-
-        result = predictor.predict(
-            pickup_lat=float(pickup_lat),
-            pickup_lon=float(pickup_lon),
-            dropoff_lat=float(dropoff_lat),
-            dropoff_lon=float(dropoff_lon),
-            passenger_count=int(passenger_count),
-            trip_dt=trip_dt,
-        )
-        return result
-    except Exception as e:
-        return {"error": str(e)}
-
-demo = gr.Interface(
-    fn=gradio_predict,
-    inputs=[
-        gr.Number(label="Pickup Lat"),
-        gr.Number(label="Pickup Lon"),
-        gr.Number(label="Dropoff Lat"),
-        gr.Number(label="Dropoff Lon"),
-        gr.Number(label="Passenger Count", value=1),
-        gr.Textbox(label="Trip Datetime (ISO format)", placeholder="2024-05-18T14:30:00Z")
-    ],
-    outputs="json",
-    title="Ryde ML Dynamic Pricing - Headless API",
-    description="Send a POST request to /api/predict with `{ \"data\": [...] }`"
-)
-
-# FastAPI wrapper to provide a standard REST endpoint for the Node.js backend
-app = FastAPI()
-
-class PredictRequest(BaseModel):
-    data: list
-
-@app.post("/api/predict")
-def api_predict(req: PredictRequest):
-    if not req.data or len(req.data) != 6:
-        raise HTTPException(status_code=400, detail="Payload must contain a `data` array with exactly 6 elements.")
-    try:
-        # Call the same logic used by the Gradio interface
-        result = gradio_predict(*req.data)
-        # Gradio interface outputs a list/dictionary structure, return it exactly as Gradio would
-        return {"data": [result]}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-# Mount Gradio app onto FastAPI
-app = gr.mount_gradio_app(app, demo, path="/")
-
-# The app is now globally available as `app` (FastAPI instance) and will be auto-started by Hugging Face Spaces.
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    uvicorn.run(app, host="0.0.0.0", port=port)

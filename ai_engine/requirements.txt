@@ -3,8 +3,6 @@
 # Install with: pip install -r requirements.txt
 
 fastapi
-uvicorn
-gradio>=4.0.0
 scikit-learn
 pandas
 numpy
