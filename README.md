@@ -2,7 +2,7 @@
 
 # 🚗 Ryde — ML Dynamic Pricing Platform
 
-### *A production-grade, serverless ride-pricing engine trained on 178,274 real NYC taxi trips and deployed across a zero-cost, Vercel monorepo.*
+### *A production-grade, serverless ride-pricing engine trained on 178,274 real NYC taxi trips and deployed across a zero-cost, three-service Vercel monorepo.*
 
 <br />
 
@@ -19,53 +19,49 @@
 
 ---
 
+## 🏛️ Architectural Milestones
+
+<br />
+
+The project recently underwent a major architectural migration to achieve a stable, zero-cost production build. We transitioned from scattered services to a highly optimized Vercel Monorepo.
+
+- **Monorepo Zero-Config Routing:** Unified the Vite React Frontend, Express Backend, and FastAPI Python Engine under a single domain (`uber-dynamic-pricing-platform.vercel.app`) using Vercel's zero-config routing in `vercel.json`. This eliminated CORS issues and simplified deployment to a single `git push`.
+- **Node.js Module Resolution:** Resolved `ERR_REQUIRE_ESM` crashes by strategically isolating `"type": "commonjs"` configurations for the serverless backend, bypassing Vite's global ES Module settings.
+- **Pure Python AI Engine (Bypassing the 250MB Limit):** 
+  > [!IMPORTANT]
+  > AWS Lambda limits serverless functions to 250MB uncompressed. Standard ML libraries (`scikit-learn`, `scipy`, `pandas`) exceed 350MB.
+  > To solve this, we dumped the weights and decision trees of our `GradientBoostingRegressor` into a lightweight 2.0MB JSON file. We then engineered a **Zero-Dependency Pure Python Predictor** that reads the JSON and performs exact mathematical predictions. This shrank the AI Engine from >350MB to **<5MB**, resulting in lightning-fast cold starts and a 100% stable deployment.
+- **Vercel Preview Protection Resilience:** Built robust error handling and environment variable checks (`DB_CONNECT`) to gracefully handle Vercel Preview deployments and diagnose MongoDB network blocks.
+
+**Status:** All systems GO! 🟢
+
+<br />
+
+---
+
 ## 🚀 Live Demos
 
 <br />
 
 | Service | Live URL | Technology |
 | :---: | :--- | :---: |
-| 🌐 **Unified Application** | **[uber-dynamic-pricing-platform.vercel.app](https://uber-dynamic-pricing-platform.vercel.app)** | Monorepo (React + Express + FastAPI) |
+| ⚛️ **Frontend** | **[uber-dynamic-pricing-platform-frontend.vercel.app](https://uber-dynamic-pricing-platform-frontend.vercel.app)** | React 18 + Vite |
+| 🟢 **Backend API** | **[uber-dynamic-pricing-platform-gz72.vercel.app](https://uber-dynamic-pricing-platform-gz72.vercel.app)** | Node.js + Express |
+| 🐍 **AI Engine** | **[uber-dynamic-pricing-platform.vercel.app/api/predict](https://uber-dynamic-pricing-platform.vercel.app/api/predict)** | Python + FastAPI Serverless |
 
 <br />
 
-> 💡 The entire platform—Frontend, Backend, and AI Engine—is deployed from a **single GitHub repository** via Vercel's zero-config routing. No separate CI/CD pipelines, no platform sprawl, no CORS issues.
+> 💡 All three services are deployed from a **single GitHub repository** via one unified `git push`. No separate CI/CD pipelines, no platform sprawl — a true zero-friction monorepo deployment.
 
 <br />
 
 ---
 
-## 🏗️ System Architecture & Monorepo Structure
+## 🏗️ System Architecture
 
 <br />
 
-The project is structured as a unified Vercel monorepo. It leverages Vercel's Serverless Functions to host both the Node.js Express API and the Python FastAPI ML Engine alongside the static React frontend.
-
-### Directory Layout
-
-```text
-uber-dynamic-pricing-platform/
-├── api/                       # Vercel Serverless Functions
-│   ├── backend/               # Catch-all proxy for the Express Backend ([...path].js)
-│   │   └── package.json       # Forces "type": "commonjs" for Node functions
-│   └── predict/               # FastAPI AI Engine Endpoint
-│       ├── index.py           # Vercel Python entrypoint
-│       ├── pure_predictor.py  # Zero-dependency ML prediction logic
-│       └── model_dump.json    # Serialized Gradient Boosting weights (2MB)
-├── backend/                   # Core Express.js Backend Logic
-│   ├── controllers/           # API handlers
-│   ├── models/                # Mongoose schemas (MongoDB)
-│   ├── routes/                # Express routing definitions
-│   ├── services/              # Geocoding & orchestrator logic
-│   └── package.json           # Backend dependencies (express, mongoose, etc.)
-├── src/                       # Core React Frontend (Vite)
-│   ├── components/            # UI components (GSAP, Leaflet maps)
-│   ├── App.jsx                # Main application view
-│   └── main.jsx               # React DOM entry
-├── package.json               # Root dependencies (Vite, React)
-├── requirements.txt           # Root Python dependencies (FastAPI) for Vercel Builder
-└── vercel.json                # Vercel deployment & rewrite rules
-```
+The platform is composed of three fully independent microservices housed in a single monorepo, communicating through clean REST boundaries.
 
 <br />
 
@@ -73,37 +69,41 @@ uber-dynamic-pricing-platform/
 graph LR
     User(["👤 User"])
 
-    subgraph FE ["⚛️ Frontend (Root)"]
+    subgraph FE ["⚛️ Frontend — Vite"]
         UI["React SPA<br>GSAP + Leaflet"]
     end
 
-    subgraph BE ["🟢 Backend (backend/)"]
-        API["REST API<br>Express"]
+    subgraph BE ["🟢 Backend — Express"]
+        API["REST API<br>Node.js"]
         GEO["Nominatim<br>Geocoder"]
+        MULT["Vehicle<br>Multipliers"]
         DB[("MongoDB<br>Atlas")]
     end
 
-    subgraph AI ["🐍 AI Engine (api/predict/)"]
-        FN["Vercel<br>Serverless"]
+    subgraph AI ["🐍 AI Engine — FastAPI"]
+        FN["Serverless<br>Function"]
+        ENG["Feature<br>Engineering"]
         OOD{"OOD<br>Guardrail"}
-        MODEL["Pure Python<br>Gradient Boosting"]
+        MODEL["Pure Python<br>Predictor (JSON)"]
         LINEAR["Linear<br>Fallback"]
     end
 
     User -->|"Enter locations"| UI
-    UI -->|"GET /api/backend/rides/get-fare"| API
+    UI -->|"GET /rides/get-fare"| API
     API -->|"Geocode addresses"| GEO
     GEO -->|"lat, lng"| API
     API -->|"POST /api/predict"| FN
-    FN --> OOD
+    FN --> ENG
+    ENG --> OOD
     OOD -->|"In-distribution"| MODEL
     OOD -->|"OOD trip"| LINEAR
     MODEL -->|"Predicted fare"| FN
     LINEAR -->|"Formula fare"| FN
     FN -->|"estimated_fare_usd"| API
-    API -->|"car / auto / moto prices"| UI
+    API --> MULT
+    MULT -->|"car / auto / moto prices"| UI
     UI -->|"User confirms vehicle"| UI
-    UI -->|"POST /api/backend/rides/create"| API
+    UI -->|"POST /rides/create"| API
     API -->|"Persist ride record"| DB
 ```
 
@@ -123,7 +123,7 @@ This project was executed in three sequential, clearly owned phases. Each team m
 | :---: | :--- | :--- | :--- |
 | **Phase 1** | 📊 Data Analysis & EDA | **Abdoallah Essam** | Ingested and cleaned 200,000+ raw NYC trip records. Applied geographic bounding box filters, IQR-based outlier removal on `fare_amount`, and built temporal features from raw timestamps. Engineered the critical `distance_km` feature using the **Haversine formula**. Produced all EDA visualizations (fare distribution, hourly demand curves, distance-vs-fare scatter plots, day-of-week heatmaps). |
 | **Phase 2** | 🤖 Model Building & MLOps | **Salah Eddin** | Benchmarked **6 regression algorithms** (Linear, Ridge, Lasso, Decision Tree, Random Forest, Gradient Boosting). Selected `GradientBoostingRegressor` based on superior R² (0.79) and RMSE ($1.94). Ran `RandomizedSearchCV` hyperparameter tuning. Performed 2-fold cross-validation for stability analysis. Serialized the final model, scaler, and feature schema to `best_model.pkl`, `scaler.pkl`, and `model_features.json` using `joblib`. |
-| **Phase 3** | ☁️ Production & Deployment | **Hassan Ahmed** | Architected the three-service **Vercel monorepo**. Built the `FarePredictor` class and refactored the entire AI engine from Gradio to a pure **FastAPI Serverless Function** (`@vercel/python`). Implemented the OOD guardrail. Wired the Node.js backend to the AI Engine, built all ride routes, and debugged the full production chain — including CORS policies, environment variable injection, module resolution (ESM/CommonJS), and bypassing Vercel AWS Lambda limits. |
+| **Phase 3** | ☁️ Production & Deployment | **Hassan Ahmed** | Architected the three-service **Vercel monorepo**. Built the `FarePredictor` class and refactored the entire AI engine from Gradio to a pure **FastAPI Serverless Function** (`@vercel/python`). Implemented the OOD guardrail. Wired the Node.js backend to the AI Engine, built all ride routes, and debugged the full production chain — including CORS policies, environment variable injection, and ML version pinning. |
 
 <br />
 
@@ -137,10 +137,15 @@ This project was executed in three sequential, clearly owned phases. Each team m
 
 The raw dataset contained approximately **200,000 NYC Uber trip records**. Before any model could be trained, the data required aggressive cleaning:
 
-- ✅ **Null removal** — dropped all rows containing `NaN` values across any column.
-- ✅ **Geographic bounding box** — retained only trips originating within the NYC metro area, eliminating GPS noise and phantom out-of-city entries.
-- ✅ **Sanity filters** — removed trips where `fare_amount ≤ 0` or `passenger_count ∉ [1, 6]`.
-- ✅ **IQR outlier removal** — computed the interquartile range of `fare_amount` and hard-clipped the distribution, eliminating `$0.01` ghost entries and `$499` data-entry errors.
+<br />
+
+- ✅ **Null removal** — dropped all rows containing `NaN` values across any column
+- ✅ **Index cleanup** — removed the auto-generated `Unnamed: 0` index column
+- ✅ **Geographic bounding box** — retained only trips originating within the NYC metro area (`latitude: 40.4–41.0`, `longitude: -74.3–-73.6`), eliminating GPS noise and phantom out-of-city entries
+- ✅ **Sanity filters** — removed trips where `fare_amount ≤ 0` or `passenger_count ∉ [1, 6]`
+- ✅ **IQR outlier removal** — computed the interquartile range of `fare_amount` and hard-clipped the distribution at `[Q1 − 1.5×IQR, Q3 + 1.5×IQR]`, eliminating `$0.01` ghost entries and `$499` data-entry errors
+
+<br />
 
 > **After cleaning: 178,274 high-quality trip records remained — a 10–12% reduction that dramatically improved signal quality.**
 
@@ -148,17 +153,94 @@ The raw dataset contained approximately **200,000 NYC Uber trip records**. Befor
 
 ### Phase 2 — Feature Engineering
 
-All 16 model features are derived from just four raw inputs: pickup coordinates, dropoff coordinates, passenger count, and a single datetime string. Distance is calculated securely using the **Haversine formula** (great-circle distance) both during training and inference.
+All 16 model features are derived from just four raw inputs: pickup coordinates, dropoff coordinates, passenger count, and a single datetime string.
+
+<br />
+
+| Feature | Raw Source | Transformation |
+| :--- | :--- | :--- |
+| `pickup_hour` | `pickup_datetime` | `dt.hour` |
+| `pickup_month` | `pickup_datetime` | `dt.month` |
+| `pickup_year` | `pickup_datetime` | `dt.year` |
+| `distance_km` | GPS coordinates | **Haversine formula** (great-circle distance) |
+| `day_Monday` … `day_Sunday` | `pickup_day` | **One-hot encoding** — 7 binary columns |
+| `pickup_latitude`, `pickup_longitude` | Raw GPS | StandardScaler normalized |
+| `dropoff_latitude`, `dropoff_longitude` | Raw GPS | StandardScaler normalized |
+| `passenger_count` | Raw integer | StandardScaler normalized |
+
+<br />
+
+The **Haversine formula** is the same implementation used in both the training notebook and the live production serverless function — guaranteeing zero discrepancy between training-time and inference-time distance calculations:
+
+<br />
+
+```python
+def haversine_distance(lat1, lon1, lat2, lon2):
+    R = 6371.0  # Earth's mean radius in km
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+    a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
+    return R * 2 * atan2(sqrt(a), sqrt(1 - a))
+```
 
 <br />
 
 ### Phase 3 — Model Benchmarking & Selection
 
-Six regression algorithms were evaluated on an **80/20 train-test split**. 
+Six regression algorithms were evaluated on an **80/20 train-test split** across the full cleaned dataset:
 
-🥇 **Gradient Boosting Regressor** won with an **R² of 0.79** and **RMSE of $1.94**.
+<br />
 
-**Why Gradient Boosting won:** The fare-distance relationship is fundamentally non-linear. Airport flat rates, short-trip minimums, and time-of-day surge patterns create discontinuities that no linear model can capture. Gradient Boosting iteratively corrects its residual errors, learning these complex market dynamics directly from the data.
+| Rank | Model | R² Score | RMSE | MAE |
+| :---: | :--- | :---: | :---: | :---: |
+| 🥇 | **Gradient Boosting Regressor** | **0.79** | **$1.94** | **$1.52** |
+| 🥈 | Random Forest | 0.75 | $2.11 | $1.61 |
+| 🥉 | Decision Tree | 0.68 | $2.38 | $1.79 |
+| 4 | Ridge Regression | 0.61 | $2.64 | $1.98 |
+| 5 | Lasso Regression | 0.60 | $2.66 | $2.00 |
+| 6 | Linear Regression | 0.60 | $2.67 | $2.01 |
+
+<br />
+
+**Why Gradient Boosting won:** The fare-distance relationship is fundamentally non-linear. Airport flat rates, short-trip minimums, and time-of-day surge patterns create discontinuities that no linear model can capture. Gradient Boosting builds an ensemble that iteratively corrects its residual errors — learning these complex market dynamics directly from the data. Feature importance analysis confirmed that `distance_km` alone drives **over 80% of the model's predictive power**.
+
+<br />
+
+### Phase 4 — Hyperparameter Tuning & Serialization
+
+`RandomizedSearchCV` (6 iterations, 2-fold cross-validation, all CPU cores) found the optimal configuration:
+
+<br />
+
+```
+Best configuration:
+  n_estimators  = 200
+  max_depth     = 5
+  learning_rate = 0.1
+  subsample     = 0.8
+
+Final tuned results:
+  R²   = 0.79
+  RMSE = $1.94
+  91% of all predictions fall within $5.00 of the actual fare
+```
+
+<br />
+
+Three production artifacts were serialized with `joblib` and committed directly to the repository:
+
+<br />
+
+```
+ai_engine/
+├── best_model.pkl       ← Tuned GradientBoostingRegressor (3.4 MB)
+├── scaler.pkl           ← StandardScaler fitted on training data only
+└── model_features.json  ← Ordered list of 16 feature names (critical!)
+```
+
+<br />
+
+> ⚠️ `model_features.json` is a production-critical artifact. It locks the exact column order the model was trained with. Without it, a silently reordered feature vector would produce a mathematically valid but completely wrong fare prediction — with no error thrown.
 
 <br />
 
@@ -168,59 +250,128 @@ Six regression algorithms were evaluated on an **80/20 train-test split**.
 
 <br />
 
-Machine learning models do not know what they do not know. Our Gradient Boosting model was trained exclusively on **New York City trip data**. If a user enters a pickup address in London, Cairo, or a destination 300 km outside the city, the model will attempt a prediction — extrapolating wildly outside its learned patterns.
+### The Problem
+
+Machine learning models do not know what they do not know. Our Gradient Boosting model was trained exclusively on **New York City trip data**. If a user enters a pickup address in London, Cairo, or a destination 300 km outside the city, the model will still attempt a prediction — extrapolating wildly outside its learned patterns and returning a dangerously confident but completely meaningless number.
+
+This is the **Out-of-Distribution (OOD) problem**, and it is one of the most common silent failures in production ML systems.
+
+<br />
 
 ### Our Solution: A Two-Layer Deterministic Guard
 
-Before every inference call, the `pure_predictor` runs a deterministic check:
+Before every inference call, the `FarePredictor` runs a deterministic check against two thresholds:
 
-**Guard Layer 1 — Distance Threshold:** Any trip exceeding **35 km** is considered out-of-distribution.
-**Guard Layer 2 — Geographic Bounding Box:** Any pickup latitude outside the NYC corridor (`39° – 42° N`) is blocked.
+<br />
+
+```python
+# Applied before every model.predict() call
+if distance_km > 35 or pickup_lat < 39 or pickup_lat > 42:
+    # Bypass the model — apply the linear fallback formula
+    raw_prediction = FALLBACK_FORMULA
+else:
+    # Input is within training distribution — use the ML model
+    raw_prediction = float(model.predict(feature_vector)[0])
+```
+
+<br />
+
+**Guard Layer 1 — Distance Threshold:** Any trip exceeding **35 km** is considered out-of-distribution for a standard urban taxi model trained on city rides.
+
+**Guard Layer 2 — Geographic Bounding Box:** Any pickup latitude outside the NYC corridor (`39° – 42° N`) is geographically outside the training data.
+
+<br />
 
 ### The Fallback Equation
 
 For all OOD trips, we apply a transparent, interpretable linear pricing formula instead of the black-box model:
+
+<br />
+
 > **Fare = $2.50 (Base Charge) + ( Distance_km × $0.85 )**
 
-This guarantees the system **always returns a sensible, human-explainable fare**.
+<br />
+
+| Component | Value | Rationale |
+| :--- | :---: | :--- |
+| **Base charge** | $2.50 | Minimum fare covering pickup overhead, regardless of distance |
+| **Per-kilometre rate** | $0.85 / km | Conservative, defensible linear rate for long-haul or unknown-region trips |
+
+<br />
+
+This guarantees the system **always returns a sensible, human-explainable fare** — even for inputs the ML model was never designed to handle — rather than surfacing a negative number, a near-zero prediction, or a silent server error.
 
 <br />
 
 ---
 
-## ⚔️ Engineering War Stories: Bypassing Vercel's Limits
+## ⚔️ Technical Post-Mortems
 
 <br />
 
-> *Deploying ML models to serverless environments is notoriously difficult. Here is how we engineered our way to a stable production build on Vercel's free tier.*
+> *These are the real production crises that nearly killed this project — and exactly how we engineered our way out of each one.*
 
 <br />
 
-### 🔥 Challenge 1 — The 250MB AWS Lambda Size Limit
-
-**The Problem:** AWS Lambda (which powers Vercel Serverless Functions) has a strict 250MB uncompressed size limit. Standard ML libraries (`scikit-learn`, `scipy`, `pandas`, `numpy`) exceed 350MB. Every time we deployed the `api/predict` FastAPI function, Vercel successfully built it, but the Lambda container crashed immediately upon boot with a generic `500 Server Error` because it was physically too large.
-
-**The Pivot:** We could not use `scikit-learn` in production. We had to extract the intelligence from the model.
-1. We wrote a script to dump the literal decision trees (nodes, thresholds, values) from our trained `GradientBoostingRegressor` into a lightweight `model_dump.json` file (2.0MB).
-2. We wrote a **Zero-Dependency Pure Python Predictor** (`api/predict/pure_predictor.py`) that reads the JSON and performs the exact same node-traversal math.
-3. We removed all heavy ML libraries from `requirements.txt`, leaving only `fastapi`.
-
-**The Result:** We shrank the AI Engine from >350MB to <5MB, resulting in lightning-fast cold starts, bypassing the AWS Lambda size limit entirely, and achieving a 100% stable deployment.
+<details>
+<summary><b>🔥 Challenge 1 — The Hugging Face Paywall</b></summary>
 
 <br />
 
-### ⏱️ Challenge 2 — Node.js Module Resolution (ESM vs CommonJS)
+**The original plan** was elegant: deploy the ML model as a **Gradio application on Hugging Face Spaces**. Gradio auto-generates a REST-compatible API endpoint, the Node.js backend calls it, done. The whole thing worked perfectly in local development.
 
-**The Problem:** The root `package.json` sets `"type": "module"` for Vite. However, Vercel compiles Serverless Functions in the `api/` directory using CommonJS by default. This mismatch caused immediate `ERR_REQUIRE_ESM` crashes across the entire Node.js backend when deployed.
+Then Hugging Face **silently locked their free-tier CPU and GPU hardware behind a PRO paywall** (~$9/month). Our Spaces deployment became unreachable without a paid subscription. Every single `GET /rides/get-fare` request from the production backend began timing out.
 
-**The Fix:** We strategically placed nested `package.json` files containing `{"type": "commonjs"}` inside the `backend/` and `api/backend/` directories. This localized scope override forced Vercel to compile the serverless backend correctly without breaking the Vite frontend build.
+**The Pivot — What We Actually Did:**
+We stripped Gradio out of the codebase entirely. The model logic was extracted into a clean, framework-agnostic `FarePredictor` class. We built a minimal FastAPI application and deployed it directly to Vercel via `@vercel/python`.
+
+| | Before — Hugging Face + Gradio | After — Vercel Serverless + FastAPI |
+| :--- | :---: | :---: |
+| **Monthly cost** | $9/mo PRO required | **$0.00** |
+| **Cold start latency** | ~3–8 seconds | **~400 ms** |
+| **Deployment workflow** | Separate platform, separate config | **One `git push` deploys all 3 services** |
+| **Dependency footprint** | Gradio ≈ 200 MB | FastAPI ≈ 15 MB |
+| **Vendor lock-in** | Locked to HF ecosystem | **Standard ASGI — runs anywhere** |
+
+</details>
 
 <br />
 
-### 🌐 Challenge 3 — Vercel Preview Protection & Database Connectivity
+<details>
+<summary><b>⏱️ Challenge 2 — The 250MB AWS Lambda Limit & Version Crashes</b></summary>
 
-**The Problem:** The app functioned perfectly, but hitting "Confirm Ride" returned a 500 error on Vercel Preview URLs.
-**The Fix:** We realized that Vercel Preview Deployments do not automatically inherit "Production" environment variables. The `DB_CONNECT` string was undefined, causing Mongoose connection timeouts. We implemented an explicit DB connection check in the Express controller that returns a clear `503 Service Unavailable` error when the DB string is missing, rather than allowing Mongoose to hang indefinitely. Testing on the primary Production URL resolved the issue instantly.
+<br />
+
+Even after migrating to Vercel, the first wave of production requests returned `FUNCTION_INVOCATION_FAILED` with a generic 500 error.
+
+**Bug A — scikit-learn Version Mismatch (Silent Crash)**
+Python's pickle-based deserialization is **not version-agnostic**. A model serialized under `scikit-learn==1.7.1` cannot be loaded by `scikit-learn==1.6.x`. Vercel installed a different version, causing immediate cold-start crashes.
+**Fix:** Pinned every ML dependency to its exact training-time version.
+
+**Bug B — The 250MB Hard Wall**
+Even with correct versions, deploying `scikit-learn`, `scipy`, and `pandas` pushed the uncompressed serverless function size above AWS Lambda's strict 250MB physical limit. The container crashed on boot.
+**The Fix: Pure Python Predictor:** We dumped the trained decision trees into a `model_dump.json` file and wrote a zero-dependency Python script to traverse the trees and compute the Gradient Boosting prediction mathematically. We entirely uninstalled `scikit-learn` from production, shrinking the function from >350MB to <5MB.
+
+</details>
+
+<br />
+
+<details>
+<summary><b>🌐 Challenge 3 — CORS Blocks & Hardcoded localhost</b></summary>
+
+<br />
+
+After deploying the frontend, users were greeted with a hardcoded fallback error message: *"Could not fetch fare. Is the AI Engine running on port 5000?"*
+
+**Root Cause A — Vite's Build-Time Environment Variable Injection**
+Vite resolves `import.meta.env` at build time. Without a `VITE_BASE_URL` in Vercel, it resolved to `undefined`, causing our fallback `http://localhost:4000` to be compiled into production code.
+**Fix:** Replaced the fragile env-variable approach with Vite's `import.meta.env.DEV` boolean.
+
+**Root Cause B — Express CORS Whitelist Blocking Production Origins**
+The backend `app.js` had a strict `ALLOWED_ORIGINS` array containing only `localhost:*` entries. The browser received a `CORS: Origin is not allowed` error.
+**Fix:** Opened the CORS policy for cross-domain Vercel deployments.
+
+</details>
 
 <br />
 
@@ -239,79 +390,49 @@ This guarantees the system **always returns a sensible, human-explainable fare**
 
 <br />
 
-### Step 1 — Clone the Repository
+### Monorepo Setup & Execution
 
+Run all three services locally to verify the full ML pricing pipeline.
+
+**1. Clone the Repository**
 ```bash
 git clone https://github.com/HassanAhmed2Ha/uber-dynamic-pricing-platform.git
 cd uber-dynamic-pricing-platform
 ```
 
-<br />
-
-### Step 2 — Configure Environment Variables
-
-Create the file `backend/.env` with the following content:
-
+**2. Configure the Backend Environment**
+Create the file `backend/.env`:
 ```env
 PORT=4000
 DB_CONNECT=<your_mongodb_atlas_connection_string>
 JWT_SECRET=any-local-secret-string
-AI_ENGINE_URL=http://localhost:7860
 ```
 
-<br />
-
-### Step 3 — Start the AI Engine (Terminal 1)
-
-```bash
-cd api/predict
-
-# Create and activate a Python virtual environment
-python -m venv .venv
-source .venv/bin/activate        # On Windows: .venv\Scripts\activate
-
-# Install FastAPI and Uvicorn
-pip install fastapi uvicorn pydantic
-
-# Start the FastAPI server locally
-uvicorn index:app --port 7860 --reload
-
-# ✅ FastAPI AI Engine running at → http://localhost:7860/api/predict
-```
-
-<br />
-
-### Step 4 — Start the Express Backend (Terminal 2)
+**3. Install Dependencies & Start All Services**
+In three separate terminal tabs, run:
 
 ```bash
+# Terminal 1: Backend API
 cd backend
 npm install
 npm run dev
+# Running at → http://localhost:4000
 
-# ✅ Express REST API running at → http://localhost:4000
-```
+# Terminal 2: AI Engine
+cd api/predict
+python -m venv .venv
+source .venv/bin/activate
+pip install -r ../../requirements.txt
+uvicorn index:app --port 7860 --reload
+# Running at → http://localhost:7860
 
-<br />
-
-### Step 5 — Start the React Frontend (Terminal 3)
-
-```bash
-# From the project root
+# Terminal 3: React Frontend
 npm install
 npm run dev
-
-# ✅ Vite dev server running at → http://localhost:5173
+# Running at → http://localhost:5173
 ```
 
-<br />
-
-### Step 6 — Verify the Full Pipeline
-
-Open **[http://localhost:5173](http://localhost:5173)** and enter two addresses — for example:
-- **Pickup:** `Times Square, New York`
-- **Destination:** `JFK Airport, New York`
-
-Click **Find Trip**. Within ~1 second, three ML-priced vehicle cards should appear with USD fares computed live by the Pure Python AI Engine!
+Open **[http://localhost:5173](http://localhost:5173)** and enter two NYC addresses (e.g. `Times Square, New York` to `JFK Airport, New York`) to test the ML pricing engine.
 
 <br />
 
@@ -319,6 +440,6 @@ Click **Find Trip**. Within ~1 second, three ML-priced vehicle cards should appe
 
 <div align="center">
 
-*Built with ☕, 🐍, and a healthy disregard for platform paywalls.*
+*Built with ☕, 🐍, and a healthy disregard for platform limits.*
 
 </div>
