@@ -10,16 +10,15 @@ import os
 from datetime import datetime
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from predictor import FarePredictor
+from pure_predictor import PureFarePredictor
 
 app = FastAPI(title="Ryde ML Dynamic Pricing API")
 
 # All artifacts are in the same directory as this file.
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-predictor = FarePredictor(
-    model_path=os.path.join(BASE_DIR, "best_model.pkl"),
-    scaler_path=os.path.join(BASE_DIR, "scaler.pkl"),
+predictor = PureFarePredictor(
+    model_dump_path=os.path.join(BASE_DIR, "model_dump.json"),
     features_path=os.path.join(BASE_DIR, "model_features.json"),
 )
 
