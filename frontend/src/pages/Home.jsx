@@ -213,11 +213,7 @@ const Home = () => {
             setFare(response.data.fare);
         } catch (error) {
             console.error("Error fetching ML fare:", error);
-            if (error.response && error.response.status === 400) {
-                alert(error.response.data.detail || error.response.data.message || "Location not found. Please provide a more specific address.");
-            } else {
-                alert("Could not fetch fare. Is the AI Engine running on port 5000?");
-            }
+            alert(error.response?.data?.detail || error.response?.data?.message || error.message);
             setVehiclePanel(false);
         } finally {
             setFareLoading(false);

@@ -21,27 +21,7 @@ connectToDb();
 // CORS — explicit origins for the three microservices
 // ---------------------------------------------------------------------------
 
-const ALLOWED_ORIGINS = [
-    "http://localhost:5173",   // Vite dev server (frontend)
-    "http://localhost:5174",   // Vite alternative port
-    "http://localhost:3000",   // Create-React-App fallback
-    "http://localhost:5000",   // AI Engine (for internal health checks)
-];
-
-app.use(
-    cors({
-        origin: function (origin, callback) {
-            // Allow requests with no origin (e.g. curl, Postman, server-to-server)
-            if (!origin || ALLOWED_ORIGINS.includes(origin)) {
-                return callback(null, true);
-            }
-            callback(new Error(`CORS: Origin '${origin}' is not allowed.`));
-        },
-        credentials: true,
-        methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "Authorization"],
-    })
-);
+app.use(cors({ origin: '*' }));
 
 // ---------------------------------------------------------------------------
 // Body Parsing
