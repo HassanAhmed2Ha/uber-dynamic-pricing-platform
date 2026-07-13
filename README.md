@@ -39,7 +39,13 @@ The project recently underwent a major architectural migration to achieve a stab
 
 ---
 
-## 🚀 Live Demos
+## 🚀 Live Demos & Project Preview
+
+<br />
+
+<div align="center">
+  <video src="https://github.com/HassanAhmed2Ha/uber-dynamic-pricing-platform/raw/main/Demo.webm" width="800" controls="controls" muted="muted" autoplay="autoplay" loop="loop"></video>
+</div>
 
 <br />
 
@@ -105,6 +111,43 @@ graph LR
     UI -->|"User confirms vehicle"| UI
     UI -->|"POST /rides/create"| API
     API -->|"Persist ride record"| DB
+```
+
+<br />
+
+### Monorepo Directory Structure
+
+The repository is structured to separate the Vite frontend, Express backend, and Python AI engine while allowing Vercel to build them together seamlessly.
+
+```text
+uber-dynamic-pricing-platform/
+├── api/                         # Vercel Serverless Entrypoints
+│   ├── backend/
+│   │   └── index.js             # Routes to Express App
+│   ├── predict/
+│   │   ├── index.py             # FastAPI Serverless Function
+│   │   ├── pure_predictor.py    # Zero-Dependency ML Engine
+│   │   ├── model_dump.json      # ML Weights (2.0 MB)
+│   │   └── model_features.json  # Feature Schema
+│   └── package.json             # Forces CommonJS for backend
+├── backend/                     # Node.js Express Application
+│   ├── controllers/
+│   ├── db/
+│   ├── models/
+│   ├── routes/
+│   ├── services/
+│   ├── app.js                   # Express Server Setup
+│   └── package.json             
+├── src/                         # React Frontend (Vite)
+│   ├── components/
+│   ├── context/
+│   ├── pages/
+│   ├── App.jsx
+│   └── main.jsx
+├── Demo.webm                    # Project Demonstration Video
+├── requirements.txt             # Python Dependencies (fastapi)
+├── package.json                 # Frontend Dependencies
+└── vercel.json                  # Vercel Routing Configuration
 ```
 
 <br />
