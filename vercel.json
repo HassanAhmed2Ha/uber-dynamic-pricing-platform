@@ -1,11 +1,7 @@
 {
   "functions": {
     "api/predict/index.py": {
-      "includeFiles": [
-        "api/predict/*.pkl",
-        "api/predict/*.json",
-        "api/predict/predictor.py"
-      ]
+      "includeFiles": "api/predict/**"
     }
   },
   "rewrites": [
