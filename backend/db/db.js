@@ -12,11 +12,11 @@ async function connectToDb() {
         throw new Error("DB_CONNECT is missing");
     }
 
-    if (cached.conn) {
+    if (cached.conn && mongoose.connection.readyState === 1) {
         return cached.conn;
     }
 
-    if (!cached.promise) {
+    if (!cached.promise || mongoose.connection.readyState !== 1) {
         const opts = {
             bufferCommands: false, // Don't buffer commands in serverless
             serverSelectionTimeoutMS: 5000,
