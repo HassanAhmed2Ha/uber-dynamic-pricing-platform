@@ -14,7 +14,7 @@ const getAiEngineUrl = (host) => {
 // The model predicts a standard sedan fare; these scale it per vehicle class.
 const VEHICLE_MULTIPLIERS = { car: 1.00, auto: 0.85, moto: 0.70 };
 
-async function getfare(pickup, destination, host) {
+async function getfare(pickup, destination, host, cookie) {
     if (!pickup || !destination) throw new Error('Pickup and destination are required');
 
     const [pickupCoords, dropoffCoords] = await Promise.all([
@@ -41,7 +41,10 @@ async function getfare(pickup, destination, host) {
                     new Date().toISOString(),
                 ],
             },
-            { timeout: 10000 }
+            {
+                timeout: 10000,
+                headers: cookie ? { cookie } : {}
+            }
         );
     } catch (error) {
         if (error.response?.data) {
@@ -65,12 +68,12 @@ async function getfare(pickup, destination, host) {
 
 module.exports.getfare = getfare;
 
-module.exports.createRide = async ({ pickup, destination, vehicleType, host }) => {
+module.exports.createRide = async ({ pickup, destination, vehicleType, host, cookie }) => {
     if (!pickup || !destination || !vehicleType) {
         throw new Error('Pickup, destination and vehicleType are required');
     }
 
-    const fareData = await getfare(pickup, destination, host);
+    const fareData = await getfare(pickup, destination, host, cookie);
 
     return rideModel.create({
         pickup,
