@@ -44,7 +44,8 @@ The project recently underwent a major architectural migration to achieve a stab
 <br />
 
 <div align="center">
-  <video src="https://github.com/HassanAhmed2Ha/uber-dynamic-pricing-platform/raw/main/Demo.webm" width="800" controls="controls" muted="muted" autoplay="autoplay" loop="loop"></video>
+  <p><i>Watch the live project demonstration below:</i></p>
+  https://github.com/HassanAhmed2Ha/uber-dynamic-pricing-platform/raw/main/Demo.webm
 </div>
 
 <br />
@@ -117,37 +118,55 @@ graph LR
 
 ### Monorepo Directory Structure
 
-The repository is structured to separate the Vite frontend, Express backend, and Python AI engine while allowing Vercel to build them together seamlessly.
+The repository is fully detailed below. It separates the Vite frontend, Express backend, and Python AI engine while allowing Vercel to build them together seamlessly.
 
 ```text
 uber-dynamic-pricing-platform/
 ├── api/                         # Vercel Serverless Entrypoints
 │   ├── backend/
-│   │   └── index.js             # Routes to Express App
+│   │   └── index.js             # Forwards /api/backend to Express
 │   ├── predict/
-│   │   ├── index.py             # FastAPI Serverless Function
-│   │   ├── pure_predictor.py    # Zero-Dependency ML Engine
-│   │   ├── model_dump.json      # ML Weights (2.0 MB)
-│   │   └── model_features.json  # Feature Schema
-│   └── package.json             # Forces CommonJS for backend
+│   │   ├── index.py             # FastAPI Serverless Function Endpoint
+│   │   ├── pure_predictor.py    # Zero-Dependency ML Engine Logic
+│   │   ├── model_dump.json      # ML Weights (2.0 MB JSON)
+│   │   └── model_features.json  # Feature Schema & Column Ordering
+│   └── package.json             # Forces CommonJS for backend compilation
 ├── backend/                     # Node.js Express Application
 │   ├── controllers/
+│   │   ├── maps.controller.js   # Handles Nominatim geocoding logic
+│   │   └── ride.controller.js   # Handles fare requests & ride creation
 │   ├── db/
+│   │   └── db.js                # Serverless-friendly Mongoose connection
 │   ├── models/
+│   │   └── ride.model.js        # MongoDB Ride Schema
 │   ├── routes/
+│   │   ├── maps.routes.js       # /maps endpoints
+│   │   └── ride.routes.js       # /rides endpoints
 │   ├── services/
-│   ├── app.js                   # Express Server Setup
-│   └── package.json             
+│   │   ├── maps.service.js      # External API wrappers (OSRM/Nominatim)
+│   │   └── ride.service.js      # Core business logic & AI Engine integration
+│   ├── app.js                   # Express Server Setup & CORS Middleware
+│   ├── .env                     # Local Environment Variables
+│   └── package.json             # Backend Dependencies
 ├── src/                         # React Frontend (Vite)
+│   ├── assets/
+│   │   └── react.svg
 │   ├── components/
+│   │   ├── ConfirmRide.jsx      # Post-booking success screen
+│   │   ├── LocationSearchPanel.jsx # Input forms & address search
+│   │   └── VehiclePanel.jsx     # Vehicle selection & dynamic prices
 │   ├── context/
+│   │   └── SocketContext.jsx    # Real-time state management
 │   ├── pages/
-│   ├── App.jsx
-│   └── main.jsx
+│   │   └── Home.jsx             # Main interactive Map SPA
+│   ├── index.css                # Tailwind & Custom CSS
+│   ├── App.jsx                  # React Router Configuration
+│   └── main.jsx                 # React DOM Entrypoint
 ├── Demo.webm                    # Project Demonstration Video
-├── requirements.txt             # Python Dependencies (fastapi)
-├── package.json                 # Frontend Dependencies
-└── vercel.json                  # Vercel Routing Configuration
+├── requirements.txt             # Python Dependencies (FastAPI, Pydantic)
+├── package.json                 # Frontend Dependencies (React, Vite, GSAP)
+├── tailwind.config.js           # Tailwind CSS Configuration
+└── vercel.json                  # Vercel Routing & Build Configuration
 ```
 
 <br />
