@@ -62,8 +62,9 @@ async function getfare(pickup, destination) {
     // Step 2: Call AI Engine for ML-predicted base fare (USD)
     let aiResponse;
     try {
+        const endpoint = AI_ENGINE_URL.endsWith('/api/predict') ? AI_ENGINE_URL : `${AI_ENGINE_URL}/api/predict`;
         aiResponse = await axios.post(
-            `${AI_ENGINE_URL}/api/predict`,
+            endpoint,
             {
                 data: [
                     parseFloat(pickupCoords.lat),
@@ -77,8 +78,11 @@ async function getfare(pickup, destination) {
             { timeout: 10000 } // 10-second timeout to avoid hanging the booking flow
         );
     } catch (error) {
-        if (error.response && error.response.data && error.response.data.error) {
-            throw new Error(`AI Engine Error: ${error.response.data.error}`);
+        if (error.response && error.response.data) {
+            // Vercel or API might return an object in error.response.data.error or detail
+            const errPayload = error.response.data.error || error.response.data.detail || error.response.data;
+            const errMsg = typeof errPayload === 'object' ? JSON.stringify(errPayload) : errPayload;
+            throw new Error(`AI Engine Error: ${errMsg}`);
         }
         throw new Error(`Failed to contact AI Engine: ${error.message}`);
     }

@@ -3,7 +3,7 @@
 # Install with: pip install -r requirements.txt
 
 fastapi
-scikit-learn
+scikit-learn==1.7.1
 pandas
-numpy
-joblib
+numpy>=2.0
+joblib==1.4.2
