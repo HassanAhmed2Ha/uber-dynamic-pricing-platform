@@ -45,7 +45,7 @@ The project recently underwent a major architectural migration to achieve a stab
 
 <div align="center">
   <p><i>Watch the live project demonstration below:</i></p>
-  https://github.com/HassanAhmed2Ha/uber-dynamic-pricing-platform/raw/main/Demo.webm
+  <img src="Demo.gif" alt="Project Demo" width="800" />
 </div>
 
 <br />
@@ -162,7 +162,7 @@ uber-dynamic-pricing-platform/
 │   ├── index.css                # Tailwind & Custom CSS
 │   ├── App.jsx                  # React Router Configuration
 │   └── main.jsx                 # React DOM Entrypoint
-├── Demo.webm                    # Project Demonstration Video
+├── Demo.gif                     # Project Demonstration Video
 ├── requirements.txt             # Python Dependencies (FastAPI, Pydantic)
 ├── package.json                 # Frontend Dependencies (React, Vite, GSAP)
 ├── tailwind.config.js           # Tailwind CSS Configuration
