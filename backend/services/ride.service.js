@@ -2,7 +2,11 @@ const rideModel = require('../models/ride.model');
 const mapService = require('./maps.service');
 const axios = require('axios');
 
-const AI_ENGINE_URL = process.env.AI_ENGINE_URL;
+// Automatically resolve the AI Engine URL using Vercel's built-in environment variables.
+// In production, it uses the project's domain. Locally, it falls back to port 7860.
+const AI_ENGINE_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL 
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}/api/predict`
+    : (process.env.AI_ENGINE_URL || 'http://localhost:7860/api/predict');
 
 // Vehicle-type multipliers applied on top of the ML base fare.
 // The model predicts a standard sedan fare; these scale it per vehicle class.
