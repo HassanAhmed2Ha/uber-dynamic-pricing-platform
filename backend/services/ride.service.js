@@ -2,17 +2,19 @@ const rideModel = require('../models/ride.model');
 const mapService = require('./maps.service');
 const axios = require('axios');
 
-// Automatically resolve the AI Engine URL using Vercel's built-in environment variables.
-// In production, it uses the project's domain. Locally, it falls back to port 7860.
-const AI_ENGINE_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL 
-    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}/api/predict`
-    : (process.env.AI_ENGINE_URL || 'http://localhost:7860/api/predict');
+// We resolve the AI Engine URL dynamically per request using the incoming host header.
+// This is perfectly robust for serverless monorepos and requires no Vercel env config.
+const getAiEngineUrl = (host) => {
+    if (!host) return process.env.AI_ENGINE_URL || 'http://localhost:7860/api/predict';
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    return `${protocol}://${host}/api/predict`;
+};
 
 // Vehicle-type multipliers applied on top of the ML base fare.
 // The model predicts a standard sedan fare; these scale it per vehicle class.
 const VEHICLE_MULTIPLIERS = { car: 1.00, auto: 0.85, moto: 0.70 };
 
-async function getfare(pickup, destination) {
+async function getfare(pickup, destination, host) {
     if (!pickup || !destination) throw new Error('Pickup and destination are required');
 
     const [pickupCoords, dropoffCoords] = await Promise.all([
@@ -22,9 +24,10 @@ async function getfare(pickup, destination) {
 
     let aiResponse;
     try {
-        const endpoint = AI_ENGINE_URL.endsWith('/api/predict')
-            ? AI_ENGINE_URL
-            : `${AI_ENGINE_URL}/api/predict`;
+        const aiUrl = getAiEngineUrl(host);
+        const endpoint = aiUrl.endsWith('/api/predict')
+            ? aiUrl
+            : `${aiUrl}/api/predict`;
 
         aiResponse = await axios.post(
             endpoint,
@@ -62,12 +65,12 @@ async function getfare(pickup, destination) {
 
 module.exports.getfare = getfare;
 
-module.exports.createRide = async ({ pickup, destination, vehicleType }) => {
+module.exports.createRide = async ({ pickup, destination, vehicleType, host }) => {
     if (!pickup || !destination || !vehicleType) {
         throw new Error('Pickup, destination and vehicleType are required');
     }
 
-    const fareData = await getfare(pickup, destination);
+    const fareData = await getfare(pickup, destination, host);
 
     return rideModel.create({
         pickup,

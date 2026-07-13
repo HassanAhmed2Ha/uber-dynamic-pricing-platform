@@ -19,6 +19,7 @@ module.exports.createRide = async (req, res) => {
             pickup,
             destination,
             vehicleType,
+            host: req.get('host'),
         });
 
         return res.status(201).json({
@@ -54,7 +55,7 @@ module.exports.getFare = async (req, res) => {
 
     const { pickup, destination } = req.query;
     try {
-        const fare = await rideService.getfare(pickup, destination);
+        const fare = await rideService.getfare(pickup, destination, req.get('host'));
         return res.status(200).json({ fare });
     } catch (error) {
         const statusCode = error.message.includes('Location not found') ? 400 : 500;
