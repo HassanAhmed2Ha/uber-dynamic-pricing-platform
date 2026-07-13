@@ -14,6 +14,13 @@ module.exports.createRide = async (req, res) => {
 
     const { pickup, destination, vehicleType } = req.body;
 
+    if (!process.env.DB_CONNECT) {
+        return res.status(503).json({ 
+            message: 'Failed to create ride', 
+            detail: 'Database connection string (DB_CONNECT) is not configured in this Vercel Environment (e.g. Preview vs Production).' 
+        });
+    }
+
     try {
         const ride = await rideService.createRide({
             pickup,
