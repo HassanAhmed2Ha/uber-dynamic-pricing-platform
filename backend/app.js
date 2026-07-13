@@ -13,6 +13,14 @@ const app = express();
 
 connectToDb();
 
+// Strip Vercel serverless prefix to allow standard Express routing to work seamlessly
+app.use((req, res, next) => {
+    if (req.url.startsWith('/api/backend')) {
+        req.url = req.url.replace('/api/backend', '');
+    }
+    next();
+});
+
 // Open CORS policy — required for cross-origin requests between the Vercel
 // frontend and backend deployments (separate subdomains).
 app.use(cors({ origin: "*" }));

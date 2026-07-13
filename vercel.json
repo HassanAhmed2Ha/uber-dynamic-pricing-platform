@@ -1,27 +1,17 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": { "distDir": "dist" }
-    },
-    {
-      "src": "api/backend/[...path].js",
-      "use": "@vercel/node",
-      "config": { "maxDuration": 30 }
-    },
-    {
-      "src": "api/predict/index.py",
-      "use": "@vercel/python",
-      "config": {
-        "includeFiles": ["api/predict/*.pkl", "api/predict/*.json", "api/predict/predictor.py"]
-      }
+  "functions": {
+    "api/predict/index.py": {
+      "includeFiles": [
+        "api/predict/*.pkl",
+        "api/predict/*.json",
+        "api/predict/predictor.py"
+      ]
     }
-  ],
-  "routes": [
-    { "src": "/api/predict", "dest": "/api/predict/index.py" },
-    { "src": "/api/backend/(.*)", "dest": "/api/backend/[...path].js" },
-    { "src": "/(.*)", "dest": "/frontend/dist/$1" }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
