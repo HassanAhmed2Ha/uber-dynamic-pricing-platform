@@ -7,15 +7,18 @@ directory — no sys.path manipulation required.
 """
 
 import os
+import sys
 from datetime import datetime
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from pure_predictor import PureFarePredictor
-
-app = FastAPI(title="Ryde ML Dynamic Pricing API")
 
 # All artifacts are in the same directory as this file.
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(BASE_DIR)
+
+from pure_predictor import PureFarePredictor
+
+app = FastAPI(title="Ryde ML Dynamic Pricing API")
 
 predictor = PureFarePredictor(
     model_dump_path=os.path.join(BASE_DIR, "model_dump.json"),
