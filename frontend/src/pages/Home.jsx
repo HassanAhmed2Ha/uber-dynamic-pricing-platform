@@ -10,7 +10,9 @@ import VehiclePanel from "../components/VehiclePanel";
 import ConfirmRide from "../components/ConfirmRide";
 
 // Base URL for the Node.js backend API
-const BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:4000";
+const BASE_URL = import.meta.env.DEV 
+    ? "http://localhost:4000" 
+    : "https://uber-dynamic-pricing-platform-gz72.vercel.app";
 
 const pickupIcon = new L.Icon({
     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
