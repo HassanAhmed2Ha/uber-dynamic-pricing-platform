@@ -11,7 +11,17 @@ const rideRoutes = require("./routes/ride.routes");
 
 const app = express();
 
-connectToDb();
+// In serverless environments, we must await the DB connection per request
+// before passing it to the routers, otherwise Mongoose operations will time out.
+app.use(async (req, res, next) => {
+    try {
+        await connectToDb();
+        next();
+    } catch (err) {
+        console.error("Database connection failed:", err.message);
+        res.status(503).json({ message: "Service Unavailable", detail: "Database connection failed" });
+    }
+});
 
 // Strip Vercel serverless prefix to allow standard Express routing to work seamlessly
 app.use((req, res, next) => {
